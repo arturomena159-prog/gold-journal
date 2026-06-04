@@ -238,6 +238,27 @@
   }
   .export-btn:hover { border-color: var(--border2); color: var(--gold); background: rgba(201,168,76,0.06); }
 
+  /* Daily Review */
+  .review-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+  .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; cursor: pointer; user-select: none; }
+  .review-title { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; }
+  .review-date-tag { font-family: 'Space Mono', monospace; font-size: 10px; color: var(--gold-dim); background: rgba(201,168,76,0.08); border: 0.5px solid rgba(201,168,76,0.2); padding: 2px 8px; border-radius: 20px; }
+  .review-toggle { font-size: 10px; color: var(--text3); }
+
+  .review-section { margin-bottom: 12px; }
+  .review-section:last-child { margin-bottom: 0; }
+  .review-section-label { font-size: 10px; color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 8px; }
+  .cb-grid { display: flex; flex-wrap: wrap; gap: 6px; }
+  .cb-item { display: flex; align-items: center; gap: 6px; padding: 5px 10px; border-radius: 20px; border: 0.5px solid rgba(255,255,255,0.07); background: var(--bg3); cursor: pointer; transition: all 0.15s; }
+  .cb-item:hover { border-color: rgba(255,255,255,0.15); }
+  .cb-item input[type="checkbox"] { display: none; }
+  .cb-item span { font-size: 11px; color: var(--text3); transition: color 0.15s; white-space: nowrap; }
+  .cb-item.checked-error { background: var(--red-bg); border-color: var(--red-border); }
+  .cb-item.checked-error span { color: var(--red); }
+  .cb-item.checked-context { background: var(--green-bg); border-color: var(--green-border); }
+  .cb-item.checked-context span { color: var(--green); }
+  .review-saved { font-size: 10px; color: var(--text3); text-align: right; margin-top: 10px; min-height: 14px; font-family: 'Space Mono', monospace; transition: opacity 0.3s; }
+
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
@@ -330,6 +351,66 @@
     <div class="chart-area" id="chart-area">
       <div class="zero-line"></div>
       <div class="empty-state" style="width:100%;font-size:11px;">Aquí aparecerá tu curva de resultados</div>
+    </div>
+  </div>
+
+  <!-- REVISIÓN DEL DÍA -->
+  <div class="review-card">
+    <div class="review-header" onclick="toggleReview()">
+      <div class="review-title">Revisión del día</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="review-date-tag" id="review-date-tag"></div>
+        <div class="review-toggle" id="review-toggle">▲</div>
+      </div>
+    </div>
+    <div id="review-body">
+      <div class="review-section">
+        <div class="review-section-label">Errores cometidos</div>
+        <div class="cb-grid" id="errors-grid">
+          <label class="cb-item" data-group="error" data-val="adelanto">
+            <input type="checkbox" onchange="onCbChange(this)">
+            <span>Me adelanté sin confirmación</span>
+          </label>
+          <label class="cb-item" data-group="error" data-val="sin_stop">
+            <input type="checkbox" onchange="onCbChange(this)">
+            <span>Sin stop definido</span>
+          </label>
+          <label class="cb-item" data-group="error" data-val="subio_lote">
+            <input type="checkbox" onchange="onCbChange(this)">
+            <span>Subí lote por emoción</span>
+          </label>
+          <label class="cb-item" data-group="error" data-val="contra_tendencia">
+            <input type="checkbox" onchange="onCbChange(this)">
+            <span>Entré contra la tendencia mayor</span>
+          </label>
+          <label class="cb-item" data-group="error" data-val="salio_antes">
+            <input type="checkbox" onchange="onCbChange(this)">
+            <span>Salí antes de tiempo</span>
+          </label>
+        </div>
+      </div>
+      <div class="review-section">
+        <div class="review-section-label">Contexto de entrada</div>
+        <div class="cb-grid" id="context-grid">
+          <label class="cb-item" data-group="context" data-val="cruce_ema">
+            <input type="checkbox" onchange="onCbChange(this)">
+            <span>Cruce EMA confirmado</span>
+          </label>
+          <label class="cb-item" data-group="context" data-val="rebote_sr">
+            <input type="checkbox" onchange="onCbChange(this)">
+            <span>Rebote en S/R</span>
+          </label>
+          <label class="cb-item" data-group="context" data-val="fibonacci">
+            <input type="checkbox" onchange="onCbChange(this)">
+            <span>Fibonacci + confirmación</span>
+          </label>
+          <label class="cb-item" data-group="context" data-val="feeling">
+            <input type="checkbox" onchange="onCbChange(this)">
+            <span>A ojo / feeling</span>
+          </label>
+        </div>
+      </div>
+      <div class="review-saved" id="review-saved"></div>
     </div>
   </div>
 
@@ -459,6 +540,8 @@
   var formOut      = null;
   var activeFilter = 'all';
   var tradesRef    = null;
+  var dailyRef     = null;
+  var reviewOpen   = true;
 
   /* ── Auth ── */
   function signInGoogle() {
@@ -480,6 +563,13 @@
       document.getElementById('user-name').textContent = user.displayName || user.email;
       if (user.photoURL) document.getElementById('user-avatar').src = user.photoURL;
 
+      dailyRef = db.ref('users/' + user.uid + '/daily');
+      var todayKey = getTodayKey();
+      document.getElementById('review-date-tag').textContent = todayKey;
+      dailyRef.child(todayKey).once('value', function(snap) {
+        loadReview(snap.val() || {});
+      });
+
       tradesRef = db.ref('users/' + user.uid + '/trades');
       tradesRef.on('value', function(snapshot) {
         trades = [];
@@ -493,6 +583,7 @@
       document.getElementById('fo-time').value = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
     } else {
       if (tradesRef) { tradesRef.off(); tradesRef = null; }
+      dailyRef = null;
       trades = [];
       document.getElementById('login-screen').style.display = 'flex';
       document.getElementById('app').style.display = 'none';
@@ -704,6 +795,57 @@
   function clearAll() {
     if (!confirm('¿Borrar todo el historial? Esta acción no se puede deshacer.')) return;
     tradesRef.remove();
+  }
+
+  /* ── Revisión diaria ── */
+  function getTodayKey() {
+    var d = new Date();
+    return d.getFullYear() + '-' +
+      (d.getMonth()+1).toString().padStart(2,'0') + '-' +
+      d.getDate().toString().padStart(2,'0');
+  }
+
+  function onCbChange(input) {
+    var label = input.parentElement;
+    var group = label.getAttribute('data-group');
+    var checked = input.checked;
+    label.className = 'cb-item' + (checked ? (group === 'error' ? ' checked-error' : ' checked-context') : '');
+    saveReview();
+  }
+
+  function loadReview(data) {
+    var errors  = data.errors  || [];
+    var context = data.context || [];
+    document.querySelectorAll('.cb-item').forEach(function(label) {
+      var group = label.getAttribute('data-group');
+      var val   = label.getAttribute('data-val');
+      var arr   = group === 'error' ? errors : context;
+      var checked = arr.indexOf(val) !== -1;
+      label.querySelector('input').checked = checked;
+      label.className = 'cb-item' + (checked ? (group === 'error' ? ' checked-error' : ' checked-context') : '');
+    });
+  }
+
+  function saveReview() {
+    if (!dailyRef) return;
+    var errors = [], context = [];
+    document.querySelectorAll('.cb-item').forEach(function(label) {
+      if (!label.querySelector('input').checked) return;
+      var group = label.getAttribute('data-group');
+      var val   = label.getAttribute('data-val');
+      if (group === 'error') errors.push(val);
+      else context.push(val);
+    });
+    dailyRef.child(getTodayKey()).set({ errors: errors, context: context });
+    var saved = document.getElementById('review-saved');
+    saved.textContent = 'guardado ✓';
+    setTimeout(function() { saved.textContent = ''; }, 2000);
+  }
+
+  function toggleReview() {
+    reviewOpen = !reviewOpen;
+    document.getElementById('review-body').style.display   = reviewOpen ? '' : 'none';
+    document.getElementById('review-toggle').textContent = reviewOpen ? '▲' : '▼';
   }
 </script>
 </body>
