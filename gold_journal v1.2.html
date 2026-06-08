@@ -291,6 +291,19 @@
   .cb-item.checked-context span { color: var(--green); }
   .review-saved { font-size: 10px; color: var(--text3); text-align: right; margin-top: 10px; min-height: 14px; font-family: 'Space Mono', monospace; transition: opacity 0.3s; }
 
+  /* Tabs */
+  .tab-nav { display: flex; gap: 4px; margin-bottom: 1.5rem; background: var(--bg2); border: 0.5px solid var(--border); border-radius: 12px; padding: 5px; }
+  .tab-btn {
+    flex: 1; padding: 8px 12px; border-radius: 8px;
+    border: none; background: transparent;
+    font-family: 'Space Mono', monospace; font-size: 11px;
+    color: var(--text3); cursor: pointer;
+    letter-spacing: 0.06em; transition: all 0.18s;
+  }
+  .tab-btn.active { background: rgba(201,168,76,0.12); color: var(--gold); border: 0.5px solid rgba(201,168,76,0.25); }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
   ::-webkit-scrollbar { width: 4px; }
   ::-webkit-scrollbar-track { background: var(--bg); }
   ::-webkit-scrollbar-thumb { background: var(--bg4); border-radius: 2px; }
@@ -342,6 +355,15 @@
       <button class="logout-btn" onclick="signOutUser()">Salir</button>
     </div>
   </div>
+
+  <!-- TABS -->
+  <div class="tab-nav">
+    <button class="tab-btn active" id="tab-dashboard" onclick="switchTab('dashboard')">Dashboard</button>
+    <button class="tab-btn"        id="tab-trades"    onclick="switchTab('trades')">Trades</button>
+  </div>
+
+  <!-- PANEL: DASHBOARD -->
+  <div class="tab-panel active" id="panel-dashboard">
 
   <!-- STATS -->
   <div class="stats-grid">
@@ -463,6 +485,11 @@
     </div>
   </div>
 
+  </div><!-- /panel-dashboard -->
+
+  <!-- PANEL: TRADES -->
+  <div class="tab-panel" id="panel-trades">
+
   <!-- FORMULARIO -->
   <div class="form-card">
     <div class="form-title">Registrar operación</div>
@@ -561,6 +588,8 @@
     <button class="export-btn" onclick="exportCSV()">↓ Exportar CSV</button>
     <button class="reset-btn" onclick="clearAll()">✕ Borrar todo</button>
   </div>
+
+  </div><!-- /panel-trades -->
 
 </div>
 </div>
@@ -915,6 +944,14 @@
     var saved = document.getElementById('review-saved');
     saved.textContent = 'guardado ✓';
     setTimeout(function() { saved.textContent = ''; }, 2000);
+  }
+
+  /* ── Tabs ── */
+  function switchTab(name) {
+    ['dashboard','trades'].forEach(function(t) {
+      document.getElementById('tab-' + t).className   = 'tab-btn' + (t === name ? ' active' : '');
+      document.getElementById('panel-' + t).className = 'tab-panel' + (t === name ? ' active' : '');
+    });
   }
 
   /* ── Journal ── */
