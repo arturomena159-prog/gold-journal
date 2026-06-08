@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>XAUUSD — Diario de Trading</title>
+<title>Diario de Trading</title>
 <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
@@ -206,6 +206,17 @@
   .pl-be { color: var(--gold); }
   .trade-del { background: none; border: none; color: var(--text3); cursor: pointer; font-size: 14px; padding: 4px; border-radius: 5px; transition: all 0.15s; }
   .trade-del:hover { color: var(--red); background: var(--red-bg); }
+  .instr-btns { display: flex; gap: 6px; flex-wrap: wrap; }
+  .instr-opt {
+    flex: 1; padding: 8px; border-radius: 8px;
+    border: 0.5px solid rgba(255,255,255,0.07);
+    background: var(--bg3); font-size: 11px; font-weight: 700;
+    cursor: pointer; color: var(--text3);
+    font-family: 'Space Mono', monospace;
+    transition: all 0.18s; text-align: center; white-space: nowrap;
+  }
+  .instr-opt.sel-instr { background: rgba(201,168,76,0.12); border-color: rgba(201,168,76,0.35); color: var(--gold); }
+  .trade-instr { font-family: 'Space Mono', monospace; font-size: 9px; padding: 2px 6px; border-radius: 4px; background: rgba(201,168,76,0.08); color: var(--gold-dim); border: 0.5px solid rgba(201,168,76,0.2); white-space: nowrap; }
 
   .empty-state { text-align: center; padding: 2rem; color: var(--text3); font-size: 13px; }
   .empty-icon { font-size: 28px; margin-bottom: 8px; opacity: 0.4; }
@@ -277,7 +288,7 @@
 <!-- PANTALLA DE LOGIN -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-ticker">XAU/USD — Diario</div>
+    <div class="login-ticker">Diario de Trading</div>
     <div class="login-sub">Registro de operaciones · MapleStax CBC</div>
     <button class="google-btn" onclick="signInGoogle()">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -298,7 +309,7 @@
 
   <div class="header">
     <div class="header-left">
-      <div class="ticker">XAU/USD — Diario</div>
+      <div class="ticker">Diario de Trading</div>
       <div class="header-sub">Registro de operaciones · MapleStax CBC</div>
     </div>
     <div class="header-right">
@@ -419,6 +430,15 @@
     <div class="form-title">Registrar operación</div>
     <div class="form-grid">
 
+      <div class="form-group full">
+        <label>Instrumento</label>
+        <div class="instr-btns">
+          <button class="instr-opt" id="fi-xauusd"  onclick="selInstr('XAU/USD')">XAU/USD</button>
+          <button class="instr-opt" id="fi-nas100"  onclick="selInstr('NAS100')">NAS100</button>
+          <button class="instr-opt" id="fi-us500"   onclick="selInstr('US500')">US500</button>
+        </div>
+      </div>
+
       <div class="form-group">
         <label>Dirección</label>
         <div class="dir-btns">
@@ -538,6 +558,7 @@
   var trades       = [];
   var formDir      = null;
   var formOut      = null;
+  var formInstr    = null;
   var activeFilter = 'all';
   var tradesRef    = null;
   var dailyRef     = null;
@@ -591,6 +612,14 @@
   });
 
   /* ── Formulario ── */
+  function selInstr(i) {
+    formInstr = i;
+    ['XAU/USD','NAS100','US500'].forEach(function(x) {
+      var id = 'fi-' + x.toLowerCase().replace('/','');
+      document.getElementById(id).className = 'instr-opt' + (x === i ? ' sel-instr' : '');
+    });
+  }
+
   function selDir(d) {
     formDir = d;
     document.getElementById('fo-long').className  = 'dir-opt' + (d === 'long'  ? ' sel-long'  : '');
@@ -624,6 +653,7 @@
   }
 
   function addTrade() {
+    if (!formInstr) { alert('Selecciona el instrumento'); return; }
     if (!formDir) { alert('Selecciona dirección (Long / Short)'); return; }
     var pl = calcPL();
     if (pl === null) { alert('Ingresa entrada, cierre y lotes para calcular el P&L'); return; }
@@ -633,6 +663,7 @@
     var dateStr = new Date().toLocaleDateString('es-ES', {day:'2-digit', month:'2-digit', year:'numeric'});
     var trade   = {
       id:      id,
+      instr:   formInstr,
       dir:     formDir,
       outcome: formOut,
       pl:      pl,
@@ -650,7 +681,10 @@
   }
 
   function resetForm() {
-    formDir = null; formOut = null;
+    formDir = null; formOut = null; formInstr = null;
+    ['XAU/USD','NAS100','US500'].forEach(function(x) {
+      document.getElementById('fi-' + x.toLowerCase().replace('/','')).className = 'instr-opt';
+    });
     document.getElementById('fo-long').className  = 'dir-opt';
     document.getElementById('fo-short').className = 'dir-opt';
     document.getElementById('fo-win').className   = 'out-opt';
@@ -768,7 +802,7 @@
       item.innerHTML =
         '<div class="trade-dir ' + (t.dir === 'long' ? 'td-long' : 'td-short') + '">' + (t.dir === 'long' ? '▲' : '▼') + '</div>' +
         '<div class="trade-info">' +
-          '<div class="trade-time">' + t.date + ' · ' + t.time + ' · ' + t.tf +
+          '<div class="trade-time">' + (t.instr ? '<span class="trade-instr">' + t.instr + '</span> · ' : '') + t.date + ' · ' + t.time + ' · ' + t.tf +
             (t.entry ? ' · E:$' + t.entry : '') + (t.exit ? ' → $' + t.exit : '') + (t.lots ? ' · ' + t.lots + 'L' : '') +
           '</div>' +
           (t.note ? '<div class="trade-note">' + t.note + '</div>' : '') +
@@ -781,9 +815,9 @@
 
   function exportCSV() {
     if (trades.length === 0) { alert('No hay trades para exportar'); return; }
-    var rows = [['Fecha','Hora','Dirección','Resultado','P&L','Entrada','Cierre','Lotes','Timeframe','Nota']];
+    var rows = [['Fecha','Hora','Instrumento','Dirección','Resultado','P&L','Entrada','Cierre','Lotes','Timeframe','Nota']];
     trades.forEach(function(t) {
-      rows.push([t.date, t.time, t.dir, t.outcome, t.pl, t.entry||'', t.exit||'', t.lots||'', t.tf, '"'+(t.note||'')+'"']);
+      rows.push([t.date, t.time, t.instr||'', t.dir, t.outcome, t.pl, t.entry||'', t.exit||'', t.lots||'', t.tf, '"'+(t.note||'')+'"']);
     });
     var csv  = rows.map(function(r){ return r.join(','); }).join('\n');
     var blob = new Blob([csv], {type:'text/csv'});
