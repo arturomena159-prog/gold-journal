@@ -249,6 +249,27 @@
   }
   .export-btn:hover { border-color: var(--border2); color: var(--gold); background: rgba(201,168,76,0.06); }
 
+  /* Journal */
+  .journal-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
+  .journal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; cursor: pointer; user-select: none; }
+  .journal-title { font-size: 11px; font-weight: 600; color: var(--text3); letter-spacing: 0.1em; text-transform: uppercase; }
+  .journal-textarea {
+    width: 100%; padding: 12px 14px;
+    font-size: 13px; line-height: 1.7;
+    font-family: 'DM Sans', sans-serif;
+    border-radius: 10px;
+    border: 0.5px solid rgba(255,255,255,0.08);
+    background: var(--bg3);
+    color: var(--text);
+    outline: none;
+    resize: vertical;
+    min-height: 140px;
+    transition: border-color 0.2s;
+  }
+  .journal-textarea:focus { border-color: var(--gold-dim); }
+  .journal-textarea::placeholder { color: var(--text3); }
+  .journal-saved { font-size: 10px; color: var(--text3); text-align: right; margin-top: 8px; min-height: 14px; font-family: 'Space Mono', monospace; transition: opacity 0.3s; }
+
   /* Daily Review */
   .review-card { background: var(--bg2); border: 0.5px solid var(--border); border-radius: 12px; padding: 1.25rem; margin-bottom: 1.5rem; }
   .review-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; cursor: pointer; user-select: none; }
@@ -425,6 +446,23 @@
     </div>
   </div>
 
+  <!-- JOURNAL -->
+  <div class="journal-card">
+    <div class="journal-header" onclick="toggleJournal()">
+      <div class="journal-title">Journal del día</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div class="review-date-tag" id="journal-date-tag"></div>
+        <div class="review-toggle" id="journal-toggle">▲</div>
+      </div>
+    </div>
+    <div id="journal-body">
+      <textarea class="journal-textarea" id="journal-text"
+        placeholder="¿Cómo fue el mercado hoy? ¿Qué aprendiste? ¿Cómo estaba tu mentalidad?&#10;&#10;Escribe libremente..."
+        oninput="onJournalInput()"></textarea>
+      <div class="journal-saved" id="journal-saved"></div>
+    </div>
+  </div>
+
   <!-- FORMULARIO -->
   <div class="form-card">
     <div class="form-title">Registrar operación</div>
@@ -587,8 +625,11 @@
       dailyRef = db.ref('users/' + user.uid + '/daily');
       var todayKey = getTodayKey();
       document.getElementById('review-date-tag').textContent = todayKey;
+      document.getElementById('journal-date-tag').textContent = todayKey;
       dailyRef.child(todayKey).once('value', function(snap) {
-        loadReview(snap.val() || {});
+        var data = snap.val() || {};
+        loadReview(data);
+        loadJournal(data.journal);
       });
 
       tradesRef = db.ref('users/' + user.uid + '/trades');
@@ -874,6 +915,34 @@
     var saved = document.getElementById('review-saved');
     saved.textContent = 'guardado ✓';
     setTimeout(function() { saved.textContent = ''; }, 2000);
+  }
+
+  /* ── Journal ── */
+  var journalOpen    = true;
+  var journalTimer   = null;
+
+  function onJournalInput() {
+    clearTimeout(journalTimer);
+    journalTimer = setTimeout(saveJournal, 1200);
+  }
+
+  function saveJournal() {
+    if (!dailyRef) return;
+    var text = document.getElementById('journal-text').value;
+    dailyRef.child(getTodayKey()).update({ journal: text });
+    var el = document.getElementById('journal-saved');
+    el.textContent = 'guardado ✓';
+    setTimeout(function() { el.textContent = ''; }, 2000);
+  }
+
+  function loadJournal(text) {
+    document.getElementById('journal-text').value = text || '';
+  }
+
+  function toggleJournal() {
+    journalOpen = !journalOpen;
+    document.getElementById('journal-body').style.display    = journalOpen ? '' : 'none';
+    document.getElementById('journal-toggle').textContent = journalOpen ? '▲' : '▼';
   }
 
   function toggleReview() {
